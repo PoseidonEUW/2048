@@ -9,14 +9,24 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
-
+  
+  // Quick Swhoosh sound
+  this.moveSound = new Audio('../src/sound/QuickWoosh.mov'); // Make sure the path is correct
+  this.gameAudio = new Audio('../src/sound/PianoLoops2Octave120bpm.wav')
+  this.gameOverAudio = new Audio('../src/sound/Loser.wav')
+  this.gameAudio.volume = 0.1; // Set the volume level to 0.5 (50%)
+  this.gameAudio.loop = true; // Enable looping
   this.setup();
 }
 
 // Restart the game
 GameManager.prototype.restart = function () {
+  var self = this
   this.storageManager.clearGameState();
   this.actuator.continueGame(); // Clear the game won/lost message
+  self.gameAudio.currentTime = 0; // Reset sound position to the start
+  self.gameAudio.play();
+
   this.setup();
 };
 
@@ -43,6 +53,8 @@ GameManager.prototype.setup = function () {
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.gameAudio.currentTime = 0; // Reset sound position to the start
+    this.gameAudio.play();
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
@@ -52,6 +64,7 @@ GameManager.prototype.setup = function () {
 
     // Add the initial tiles
     this.addStartTiles();
+    this.gameAudio.play();
   }
 
   // Update the actuator
@@ -184,8 +197,12 @@ GameManager.prototype.move = function (direction) {
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      self.gameAudio.pause();
+      self.gameAudio.currentTime = 0;
+      self.gameOverAudio.play();
     }
-
+    self.moveSound.currentTime = 0; // Reset sound position to the start
+    self.moveSound.play();
     this.actuate();
   }
 };
