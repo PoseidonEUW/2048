@@ -74,7 +74,27 @@ GameManager.prototype.addStartTiles = function () {
 // Adds a tile in a random position
 GameManager.prototype.addRandomTile = function () {
   if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
+    let value;
+    let difficulty = document.getElementById('difficulty-selector').value;
+    switch(difficulty) {
+      case 'easy':
+        value = Math.random() < 0.9 ? 2 : (Math.random() < 0.1 ? -2 : 4);
+        break;
+      case 'medium':
+        value = Math.random() < 0.8 ? 2 : (Math.random() < 0.2 ? -2 : 4);
+        break;
+      case 'hard':
+        value = Math.random() < 0.6 ? 2 : (Math.random() < 0.4 ? -2 : 4);
+        break;
+      case 'very-hard':
+        value = Math.random() < 0.4 ? 2 : (Math.random() < 0.6 ? (Math.random() < 0.5 ? -2 : -4) : 4);
+        break;
+      case 'extreme':
+        value = Math.random() < 0.3 ? 2 : (Math.random() < 0.7 ? (Math.random() < 0.5 ? -2 : -4) : (Math.random() < 0.5 ? 8 : 16));
+        break;
+      default:
+        value = Math.random() < 0.9 ? 2 : 4;
+    }
     var tile = new Tile(this.grid.randomAvailableCell(), value);
 
     this.grid.insertTile(tile);
@@ -159,8 +179,9 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
+        if (next && Math.abs(next.value) === Math.abs(tile.value) && !next.mergedFrom) {
+          var newValue = (tile.value + next.value === 0) ? 0 : tile.value + next.value;
+          var merged = new Tile(positions.next, newValue);
           merged.mergedFrom = [tile, next];
 
           self.grid.insertTile(merged);
@@ -169,11 +190,13 @@ GameManager.prototype.move = function (direction) {
           // Converge the two tiles' positions
           tile.updatePosition(positions.next);
 
-          // Update the score
-          self.score += merged.value;
+          // Update the score, considering the case when newValue is 0
+          if (newValue !== 0) {
+            self.score += Math.abs(merged.value);
+          }
 
           // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          if (Math.abs(merged.value) === 2048) self.won = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
