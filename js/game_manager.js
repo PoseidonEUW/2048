@@ -9,14 +9,18 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
-
+  this.soundManager = new SoundManager(); // Assuming SoundManager is a global function
+  this.soundManager.playSound('gameAudio')
   this.setup();
 }
 
 // Restart the game
 GameManager.prototype.restart = function () {
+  var self = this
   this.storageManager.clearGameState();
   this.actuator.continueGame(); // Clear the game won/lost message
+  this.soundManager.playSound('gameAudio')
+
   this.setup();
 };
 
@@ -43,6 +47,7 @@ GameManager.prototype.setup = function () {
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.soundManager.playSound('gameAudio')
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
@@ -52,6 +57,7 @@ GameManager.prototype.setup = function () {
 
     // Add the initial tiles
     this.addStartTiles();
+    this.soundManager.playSound('gameAudio')
   }
 
   // Update the actuator
@@ -184,7 +190,10 @@ GameManager.prototype.move = function (direction) {
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      this.soundManager.pauseSound('gameAudio'); // Pause game audio
+      this.soundManager.playSound('gameOverAudio'); // Play game over audio
     }
+    this.soundManager.playSound('moveAudio'); // Play game over audio
 
     this.actuate();
   }
