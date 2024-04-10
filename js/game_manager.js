@@ -1,8 +1,9 @@
-function GameManager(size, InputManager, Actuator, StorageManager) {
+function GameManager(size, InputManager, Actuator, StorageManager, timer) {
   this.size           = size; // Size of the grid
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
   this.actuator       = new Actuator;
+  this.timer     = timer;
 
   this.startTiles     = 2;
 
@@ -13,9 +14,34 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.setup();
 }
 
+var timerInterval = null; // Declare timer variable outside
+var isTimerRunning = false; // Flag to track timer state
+
+document.addEventListener("DOMContentLoaded", function () {
+  var game = null;
+
+  function initializeGame() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+    game.setup(); 
+  }
+
+  initializeGame();
+});
+
+
+
 // Restart the game
 GameManager.prototype.restart = function () {
+  this.clearTimer();
+  if (this.timerInterval) {
+    clearInterval(this.timerInterval);
+  }
   this.storageManager.clearGameState();
+  if (this.timerInterval) {
+    clearInterval(this.timerInterval);
+  }
   this.actuator.continueGame(); // Clear the game won/lost message
   this.setup();
 };
@@ -37,27 +63,68 @@ GameManager.prototype.setup = function () {
 
   // Reload the game from a previous game if present
   if (previousState) {
-    this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
-    this.score       = previousState.score;
-    this.over        = previousState.over;
-    this.won         = previousState.won;
+    this.grid = new Grid(previousState.grid.size, previousState.grid.cells); // Reload grid
+    this.score = previousState.score;
+    this.over = previousState.over;
+    this.won = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.timer = previousState.timer;
   } else {
-    this.grid        = new Grid(this.size);
-    this.score       = 0;
-    this.over        = false;
-    this.won         = false;
+    this.grid = new Grid(this.size);
+    this.score = 0;
+    this.over = false;
+    this.won = false;
     this.keepPlaying = false;
 
     // Add the initial tiles
     this.addStartTiles();
   }
 
+  if (previousState && previousState.timer) {
+    this.timer = previousState.timer;
+  }
+
+  // Set initial time based on provided timer value in seconds
+  this.timer = timer;
+
+  this.timer = 60; // Set initial time
+  this.setupTimer(); // Set up the timer
+
   // Update the actuator
   this.actuate();
 };
 
+GameManager.prototype.setupTimer = function () {
+  var self = this;
+  this.clearTimer(); // Clear any existing timer
+  this.timerInterval = setInterval(function () {
+    self.updateTimer(); // Ensure correct context when calling updateTimer
+  }, 1000);
+};
+
+GameManager.prototype.updateTimer = function () {
+  if (this.timer > 0) {
+    this.timer--;
+    this.actuateTimer(); // Update the display with the remaining time
+  } else {
+    this.over = true; // Game over if time runs out
+    this.clearTimer(); // Stop the timer interval
+    this.actuate(); // Update the display with the final state
+  }
+};
+
+GameManager.prototype.actuateTimer = function () {
+  this.actuator.updateTimerDisplay(this.timer);
+};
+
+HTMLActuator.prototype.updateTimerDisplay = function (time) {
+  var timerContainer = document.getElementById("timer");
+  timerContainer.textContent = "Only " + time + " seconds left until the end of the WORLD!!";
+};
+
+GameManager.prototype.clearTimer = function () {
+  clearInterval(this.timerInterval);
+};
 // Set up the initial tiles to start the game with
 GameManager.prototype.addStartTiles = function () {
   for (var i = 0; i < this.startTiles; i++) {
@@ -80,6 +147,8 @@ GameManager.prototype.actuate = function () {
   if (this.storageManager.getBestScore() < this.score) {
     this.storageManager.setBestScore(this.score);
   }
+
+  this.actuator.updateTimerDisplay(this.timer);
 
   // Clear the state when the game is over (game over only, not win)
   if (this.over) {
