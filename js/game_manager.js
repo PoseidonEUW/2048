@@ -116,6 +116,7 @@ GameManager.prototype.updateTimer = function () {
     this.actuateTimer(); // Update the display with the remaining time
   } else {
     this.over = true; // Game over if time runs out
+    this.soundManager.playSound('gameOverAudio')
     this.clearTimer(); // Stop the timer interval
     this.actuate(); // Update the display with the final state
   }
