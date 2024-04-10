@@ -10,7 +10,8 @@ function GameManager(size, InputManager, Actuator, StorageManager, timer) {
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
-
+  this.soundManager = new SoundManager(); // Assuming SoundManager is a global function
+  this.soundManager.playSound('gameAudio')
   this.setup();
 }
 
@@ -34,15 +35,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Restart the game
 GameManager.prototype.restart = function () {
+  
   this.clearTimer();
   if (this.timerInterval) {
     clearInterval(this.timerInterval);
   }
+  var self = this
+ 
   this.storageManager.clearGameState();
   if (this.timerInterval) {
     clearInterval(this.timerInterval);
   }
   this.actuator.continueGame(); // Clear the game won/lost message
+  this.soundManager.playSound('gameAudio')
+
   this.setup();
 };
 
@@ -69,6 +75,7 @@ GameManager.prototype.setup = function () {
     this.won = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
     this.timer = previousState.timer;
+    this.soundManager.playSound('gameAudio')
   } else {
     this.grid = new Grid(this.size);
     this.score = 0;
@@ -78,6 +85,7 @@ GameManager.prototype.setup = function () {
 
     // Add the initial tiles
     this.addStartTiles();
+    this.soundManager.playSound('gameAudio')
   }
 
   if (previousState && previousState.timer) {
@@ -135,7 +143,27 @@ GameManager.prototype.addStartTiles = function () {
 // Adds a tile in a random position
 GameManager.prototype.addRandomTile = function () {
   if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
+    let value;
+    let difficulty = document.getElementById('difficulty-selector').value;
+    switch(difficulty) {
+      case 'easy':
+        value = Math.random() < 0.9 ? 2 : (Math.random() < 0.1 ? -2 : 4);
+        break;
+      case 'medium':
+        value = Math.random() < 0.8 ? 2 : (Math.random() < 0.2 ? -2 : 4);
+        break;
+      case 'hard':
+        value = Math.random() < 0.6 ? 2 : (Math.random() < 0.4 ? -2 : 4);
+        break;
+      case 'very-hard':
+        value = Math.random() < 0.4 ? 2 : (Math.random() < 0.6 ? (Math.random() < 0.5 ? -2 : -4) : 4);
+        break;
+      case 'extreme':
+        value = Math.random() < 0.3 ? 2 : (Math.random() < 0.7 ? (Math.random() < 0.5 ? -2 : -4) : (Math.random() < 0.5 ? 8 : 16));
+        break;
+      default:
+        value = Math.random() < 0.9 ? 2 : 4;
+    }
     var tile = new Tile(this.grid.randomAvailableCell(), value);
 
     this.grid.insertTile(tile);
@@ -222,8 +250,9 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
+        if (next && Math.abs(next.value) === Math.abs(tile.value) && !next.mergedFrom) {
+          var newValue = (tile.value + next.value === 0) ? 0 : tile.value + next.value;
+          var merged = new Tile(positions.next, newValue);
           merged.mergedFrom = [tile, next];
 
           self.grid.insertTile(merged);
@@ -232,11 +261,13 @@ GameManager.prototype.move = function (direction) {
           // Converge the two tiles' positions
           tile.updatePosition(positions.next);
 
-          // Update the score
-          self.score += merged.value;
+          // Update the score, considering the case when newValue is 0
+          if (newValue !== 0) {
+            self.score += Math.abs(merged.value);
+          }
 
           // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          if (Math.abs(merged.value) === 2048) self.won = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -253,7 +284,10 @@ GameManager.prototype.move = function (direction) {
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      this.soundManager.pauseSound('gameAudio'); // Pause game audio
+      this.soundManager.playSound('gameOverAudio'); // Play game over audio
     }
+    this.soundManager.playSound('moveAudio'); // Play game over audio
 
     this.actuate();
   }

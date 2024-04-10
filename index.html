@@ -35,6 +35,16 @@
       <p id="timer">Timer: 0</p>
     </div>
 
+    <div class="difficulty-selector">
+      <label for="difficulty-selector">Choose difficulty:</label>
+      <select id="difficulty-selector">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+        <option value="very-hard">Very Hard</option>
+        <option value="extreme">Extreme</option>
+      </select>
+    </div>
     <div class="game-container">
       <div class="game-message">
         <p></p>
@@ -92,6 +102,7 @@
   <script src="js/bind_polyfill.js"></script>
   <script src="js/classlist_polyfill.js"></script>
   <script src="js/animframe_polyfill.js"></script>
+  <script src="js/sound_manager.js"></script>
   <script src="js/keyboard_input_manager.js"></script>
   <script src="js/html_actuator.js"></script>
   <script src="js/grid.js"></script>
